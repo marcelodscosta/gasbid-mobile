@@ -1,10 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Configuração do servidor backend (Suporta Emulador Android, iOS Simulador ou Dispositivo Físico na mesma rede Wi-Fi)
-const DEV_IP = '192.168.1.4'; // IP local da sua máquina na rede Wi-Fi
-const BASE_URL = `http://${DEV_IP}:3333`;
-
+// Configuração do servidor backend (Produção no Render)
+const BASE_URL = 'https://gasbid-backend-zh4b.onrender.com';
 type UnauthCallback = () => void;
 const listeners = new Set<UnauthCallback>();
 
