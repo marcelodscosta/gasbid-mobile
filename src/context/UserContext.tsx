@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { unregisterPushToken } from '../hooks/usePushNotifications';
 
 export type UserRole = 'BUYER' | 'SUPPLIER' | 'ADMIN' | null;
 
@@ -24,6 +25,8 @@ export function UserProvider({ children, onLogout }: { children: React.ReactNode
   const [userId, setUserId] = useState<string | null>(null);
 
   const logout = useCallback(async () => {
+    // Desregistrar push token antes de limpar credenciais
+    await unregisterPushToken();
     await AsyncStorage.multiRemove([
       '@gasbid:token',
       '@gasbid:refresh',

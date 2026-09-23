@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "GasBid",
+    "slug": "gasbid",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,9 +13,18 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gasbid.app"
     },
     "android": {
+      "package": "com.gasbid.app",
+      "versionCode": 1,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "WAKE_LOCK"
+      ],
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -28,7 +37,19 @@
     },
     "plugins": [
       "@react-native-community/datetimepicker",
-      "expo-status-bar"
-    ]
+      "expo-status-bar",
+      [
+        "expo-notifications",
+        {
+          "color": "#F97316",
+          "defaultChannel": "default"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
   }
 }

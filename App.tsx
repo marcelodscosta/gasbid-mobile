@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MapPin, List, User, BarChart2, Zap, Package, TrendingUp } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { usePushNotifications } from './src/hooks/usePushNotifications';
 
 // Buyer Screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -112,8 +113,11 @@ interface AppNavigatorProps {
 }
 
 function AppNavigator({ userRole, onLoginSuccess }: AppNavigatorProps) {
+  const navigationRef = useRef<any>(null);
+  const { expoPushToken } = usePushNotifications(navigationRef);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       {userRole === 'SUPPLIER' ? <SupplierStack /> : <BuyerTabs />}
     </NavigationContainer>
   );

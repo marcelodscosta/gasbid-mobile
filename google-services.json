@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "367592444538",
+    "project_id": "gasbid-a8566",
+    "storage_bucket": "gasbid-a8566.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:367592444538:android:733ca515dd147eb5e561c3",
+        "android_client_info": {
+          "package_name": "com.gasbid.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLxvqwVqBx84lKQq0lD1cRgonQ_ZSkjgI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
