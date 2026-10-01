@@ -92,6 +92,14 @@ export default function ProposalScreen() {
       return Alert.alert('Atenção', 'Informe o valor do frete (pode ser 0 para frete grátis).');
     }
 
+    const buyerDeadline = new Date(detail?.deadline || opportunity.deadline);
+    if (deliveryDate > buyerDeadline && !isCounterOffer) {
+      return Alert.alert(
+        'Prazo Excedido',
+        `O comprador exige entrega até ${buyerDeadline.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}.`
+      );
+    }
+
     setIsSubmitting(true);
     try {
       await api.post(`/buyer-requests/${opportunity.id}/proposals`, {
@@ -236,6 +244,9 @@ export default function ProposalScreen() {
                     {deliveryDate.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                   </Text>
                 </TouchableOpacity>
+                <Text style={{ fontSize: 11, color: '#EA580C', marginTop: 4 }}>
+                  Limite exigido: {new Date(detail?.deadline || opportunity.deadline).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </Text>
               </View>
 
               {showDatePicker && (

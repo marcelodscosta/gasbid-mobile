@@ -191,28 +191,13 @@ export default function HomeScreen({ navigation }: any) {
           prevProposalsCountRef.current = newProposalsCount;
           setActiveRequest(res.data);
 
-          // Auto-accept best offer if search timer expired or ended
+          // Auto-aceite cego desabilitado. A decisão de escolher o vencedor agora é estritamente manual ou tratada de forma segura no backend (SLA).
+          /* 
           const isExpired = res.data?.expiresAt && new Date(res.data.expiresAt).getTime() <= Date.now();
           if (isExpired && autoAcceptBestPrice && res.data?.proposals?.length > 0 && !isAutoAcceptingRef.current) {
-            isAutoAcceptingRef.current = true;
-            const propsList = res.data.proposals;
-            let bestProp = propsList[0];
-            let bestPrice = Infinity;
-            propsList.forEach((p: any) => {
-              const itemsTotal = p.items?.reduce((acc: number, i: any) => {
-                const q = res.data.items?.find((ri: any) => ri.id === i.buyerRequestItemId)?.quantity || 1;
-                return acc + (i.unitPrice * q);
-              }, 0) || 0;
-              const grandTotal = itemsTotal + (p.freightPrice || 0);
-              if (grandTotal < bestPrice) {
-                bestPrice = grandTotal;
-                bestProp = p;
-              }
-            });
-            if (bestProp?.id) {
-              handleAcceptProposal(bestProp.id);
-            }
+            // ... (código antigo)
           }
+          */
         } catch (e) {}
       }, 4000);
     }
@@ -1113,12 +1098,16 @@ export default function HomeScreen({ navigation }: any) {
                   <View style={styles.proposalsHeader}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <View>
-                        <Text style={styles.greeting}>{proposalsCount} Proposta{proposalsCount > 1 ? 's' : ''} Encontrada{proposalsCount > 1 ? 's' : ''}</Text>
-                        <Text style={styles.subtitle}>Revendas próximas estão respondendo</Text>
+                        <Text style={styles.greeting}>
+                          {activeRequest?.status === 'UNDER_REVIEW' ? 'Busca Encerrada' : `${proposalsCount} Proposta${proposalsCount > 1 ? 's' : ''} Encontrada${proposalsCount > 1 ? 's' : ''}`}
+                        </Text>
+                        <Text style={styles.subtitle}>
+                          {activeRequest?.status === 'UNDER_REVIEW' ? 'Escolha a melhor oferta abaixo' : 'Revendas próximas estão respondendo'}
+                        </Text>
                       </View>
 
                       {/* Cronômetro da Janela de Ofertas em Tempo Real */}
-                      {activeRequest?.expiresAt && (
+                      {activeRequest?.status === 'OPEN' && activeRequest?.expiresAt && (
                         <MobileCountdownTimer expiresAt={activeRequest.expiresAt} />
                       )}
                     </View>
@@ -1329,9 +1318,21 @@ export default function HomeScreen({ navigation }: any) {
               )}
 
               <View style={styles.searchingActions}>
-                <TouchableOpacity style={styles.stopButton} onPress={handleCancelRequest}>
-                  <Text style={styles.stopButtonText}>Cancelar Busca</Text>
-                </TouchableOpacity>
+                {activeRequest?.status === 'OPEN' && proposalsCount > 0 && (
+                  <TouchableOpacity style={[styles.stopButton, { backgroundColor: '#4F46E5', marginBottom: 10, borderColor: '#4F46E5', borderWidth: 1 }]} onPress={handleStopSearch}>
+                    <Text style={[styles.stopButtonText, { color: '#FFF' }]}>Finalizar Busca e Escolher</Text>
+                  </TouchableOpacity>
+                )}
+                {activeRequest?.status === 'OPEN' && (
+                  <TouchableOpacity style={[styles.stopButton, { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5', borderWidth: 1 }]} onPress={handleCancelRequest}>
+                    <Text style={[styles.stopButtonText, { color: '#DC2626' }]}>Cancelar Busca</Text>
+                  </TouchableOpacity>
+                )}
+                {activeRequest?.status === 'UNDER_REVIEW' && (
+                  <TouchableOpacity style={[styles.stopButton, { backgroundColor: '#F3F4F6' }]} onPress={handleCancelRequest}>
+                    <Text style={[styles.stopButtonText, { color: '#6B7280' }]}>Cancelar Solicitação</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )}

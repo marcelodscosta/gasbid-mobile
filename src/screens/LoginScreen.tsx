@@ -116,12 +116,12 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       </View>
 
           {/* Footer */}
-          <View style={styles.footer}>
+          {/* <View style={styles.footer}>
             <Text style={styles.footerText}>Não tem uma conta? </Text>
             <TouchableOpacity>
               <Text style={styles.footerLink}>Cadastre seu negócio</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

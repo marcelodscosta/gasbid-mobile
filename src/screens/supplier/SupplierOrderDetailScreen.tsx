@@ -12,6 +12,7 @@ import { api } from '../../api';
 import { useTheme } from '../../context/ThemeContext';
 
 const timelineLabels: Record<string, string> = {
+  PENDING_CONFIRMATION: 'Aguardando Seu Aceite',
   CREATED: 'Pedido Gerado',
   CONFIRMED: 'Confirmado',
   IN_DELIVERY: 'Em Entrega',
@@ -194,8 +195,8 @@ export default function SupplierOrderDetailScreen() {
 
           {/* Timeline */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20, marginTop: 8 }}>
-            {['CREATED', 'CONFIRMED', 'IN_DELIVERY', 'DELIVERED'].map((s, i, arr) => {
-              const reached = ['CREATED', 'CONFIRMED', 'IN_DELIVERY', 'DELIVERED'].indexOf(order.status) >= i;
+            {['PENDING_CONFIRMATION', 'CONFIRMED', 'IN_DELIVERY', 'DELIVERED'].map((s, i, arr) => {
+              const reached = ['PENDING_CONFIRMATION', 'CONFIRMED', 'IN_DELIVERY', 'DELIVERED'].indexOf(order.status) >= i;
               return (
                 <React.Fragment key={s}>
                   <View style={{ alignItems: 'center', flex: 1 }}>
@@ -219,16 +220,16 @@ export default function SupplierOrderDetailScreen() {
           </View>
 
           {/* Action buttons */}
-          {order.status === 'CREATED' && (
+          {order.status === 'PENDING_CONFIRMATION' && (
             <TouchableOpacity
-              style={[styles.actionBtn, { backgroundColor: '#4F46E5' }]}
+              style={[styles.actionBtn, { backgroundColor: '#EF4444', shadowColor: '#EF4444', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 }]}
               onPress={() => handleUpdateStatus('CONFIRMED')}
               disabled={isUpdating}
             >
               {isUpdating ? <ActivityIndicator color="white" /> : (
                 <>
                   <CheckCircle size={18} color="white" />
-                  <Text style={styles.actionBtnText}>Confirmar Pedido</Text>
+                  <Text style={styles.actionBtnText}>ACEITAR PEDIDO (5 min)</Text>
                 </>
               )}
             </TouchableOpacity>
