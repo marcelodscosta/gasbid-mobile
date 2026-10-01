@@ -48,8 +48,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "dc16c684-5bdb-4b8c-b375-f0c1476ea772"
       }
-    }
+    },
+    "owner": "marcelodscostadev"
   }
 }
