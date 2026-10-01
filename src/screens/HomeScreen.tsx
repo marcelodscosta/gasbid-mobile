@@ -854,11 +854,10 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* Floating Action / Search Sheet (Ultra Crystal Glassmorphism 45% opacity) */}
         <View style={[
           styles.bottomSheet, 
           requestState !== 'idle' && (expandedProposalId ? styles.bottomSheetFullyExpanded : styles.bottomSheetExpanded), 
-          { backgroundColor: darkMode ? 'rgba(15,15,18,0.50)' : 'rgba(255,255,255,0.45)' }
+          { backgroundColor: requestState === 'searching' ? colors.card : (darkMode ? 'rgba(15,15,18,0.85)' : 'rgba(255,255,255,0.9)') }
         ]}>
           {requestState === 'idle' && (
             <View style={styles.idleContainer}>
@@ -1098,10 +1097,10 @@ export default function HomeScreen({ navigation }: any) {
                   <View style={styles.proposalsHeader}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <View>
-                        <Text style={styles.greeting}>
+                        <Text style={[styles.greeting, { color: colors.text }]}>
                           {activeRequest?.status === 'UNDER_REVIEW' ? 'Busca Encerrada' : `${proposalsCount} Proposta${proposalsCount > 1 ? 's' : ''} Encontrada${proposalsCount > 1 ? 's' : ''}`}
                         </Text>
-                        <Text style={styles.subtitle}>
+                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                           {activeRequest?.status === 'UNDER_REVIEW' ? 'Escolha a melhor oferta abaixo' : 'Revendas próximas estão respondendo'}
                         </Text>
                       </View>
@@ -1317,20 +1316,20 @@ export default function HomeScreen({ navigation }: any) {
                 </View>
               )}
 
-              <View style={styles.searchingActions}>
+              <View style={[styles.searchingActions, { flexDirection: 'row', gap: 10 }]}>
                 {activeRequest?.status === 'OPEN' && proposalsCount > 0 && (
-                  <TouchableOpacity style={[styles.stopButton, { backgroundColor: '#4F46E5', marginBottom: 10, borderColor: '#4F46E5', borderWidth: 1 }]} onPress={handleStopSearch}>
-                    <Text style={[styles.stopButtonText, { color: '#FFF' }]}>Finalizar Busca e Escolher</Text>
+                  <TouchableOpacity style={[styles.stopButton, { flex: 2, backgroundColor: '#4F46E5', marginBottom: 0, borderColor: '#4F46E5', borderWidth: 1 }]} onPress={handleStopSearch}>
+                    <Text style={[styles.stopButtonText, { color: '#FFF', fontSize: 14 }]}>Finalizar e Escolher</Text>
                   </TouchableOpacity>
                 )}
                 {activeRequest?.status === 'OPEN' && (
-                  <TouchableOpacity style={[styles.stopButton, { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5', borderWidth: 1 }]} onPress={handleCancelRequest}>
-                    <Text style={[styles.stopButtonText, { color: '#DC2626' }]}>Cancelar Busca</Text>
+                  <TouchableOpacity style={[styles.stopButton, { flex: 1, backgroundColor: '#FEE2E2', borderColor: '#FCA5A5', borderWidth: 1, marginBottom: 0 }]} onPress={handleCancelRequest}>
+                    <Text style={[styles.stopButtonText, { color: '#DC2626', fontSize: 14 }]}>Cancelar</Text>
                   </TouchableOpacity>
                 )}
                 {activeRequest?.status === 'UNDER_REVIEW' && (
-                  <TouchableOpacity style={[styles.stopButton, { backgroundColor: '#F3F4F6' }]} onPress={handleCancelRequest}>
-                    <Text style={[styles.stopButtonText, { color: '#6B7280' }]}>Cancelar Solicitação</Text>
+                  <TouchableOpacity style={[styles.stopButton, { flex: 1, backgroundColor: '#F3F4F6', marginBottom: 0 }]} onPress={handleCancelRequest}>
+                    <Text style={[styles.stopButtonText, { color: '#6B7280', fontSize: 14 }]}>Cancelar</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1565,8 +1564,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.3)'
   },
-  bottomSheetExpanded: { height: height * 0.48 },
-  bottomSheetFullyExpanded: { height: height * 0.68 },
+  bottomSheetExpanded: { height: height * 0.58 },
+  bottomSheetFullyExpanded: { height: height * 0.75 },
   idleContainer: { paddingVertical: 10 },
   sheetTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
   requestButton: { backgroundColor: '#FF5722', borderRadius: 16, padding: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
