@@ -1095,24 +1095,28 @@ export default function HomeScreen({ navigation }: any) {
               ) : (
                 <View style={{ width: '100%', flex: 1 }}>
                   <View style={styles.proposalsHeader}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <View>
-                        <Text style={[styles.greeting, { color: colors.text }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.proposalsTitle, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>
                           {activeRequest?.status === 'UNDER_REVIEW' ? 'Busca Encerrada' : `${proposalsCount} Proposta${proposalsCount > 1 ? 's' : ''} Encontrada${proposalsCount > 1 ? 's' : ''}`}
                         </Text>
-                        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                        <Text style={[styles.subtitle, { color: colors.textSecondary, fontSize: 13 }]}>
                           {activeRequest?.status === 'UNDER_REVIEW' ? 'Escolha a melhor oferta abaixo' : 'Revendas próximas estão respondendo'}
                         </Text>
                       </View>
 
                       {/* Cronômetro da Janela de Ofertas em Tempo Real */}
                       {activeRequest?.status === 'OPEN' && activeRequest?.expiresAt && (
-                        <MobileCountdownTimer expiresAt={activeRequest.expiresAt} />
+                        <MobileCountdownTimer expiresAt={activeRequest.expiresAt} compact />
                       )}
                     </View>
                   </View>
                   
-                  <ScrollView showsVerticalScrollIndicator={false} style={styles.proposalsScroll}>
+                  <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    style={styles.proposalsScroll}
+                    contentContainerStyle={{ paddingTop: 4, paddingBottom: 8, paddingHorizontal: 2 }}
+                  >
                     {proposals.map((prop: any) => {
                       const itemsTotal = prop.items?.reduce((acc: number, i: any) => {
                         const q = activeRequest.items?.find((ri: any) => ri.id === i.buyerRequestItemId)?.quantity || 1;
@@ -1171,8 +1175,8 @@ export default function HomeScreen({ navigation }: any) {
                                 backgroundColor: colors.card, 
                                 borderColor: isBestPrice ? '#4CAF50' : colors.border, 
                                 borderWidth: isBestPrice ? 2 : 1,
-                                marginBottom: 12, 
-                                padding: 14 
+                                marginBottom: 14, 
+                                padding: 16 
                               }
                             ]}
                           >
@@ -1185,9 +1189,9 @@ export default function HomeScreen({ navigation }: any) {
                                 backgroundColor: '#E8F5E9',
                                 alignSelf: 'flex-start',
                                 paddingHorizontal: 8,
-                                paddingVertical: 3,
+                                paddingVertical: 4,
                                 borderRadius: 6,
-                                marginBottom: 8,
+                                marginBottom: 12,
                                 borderWidth: 1,
                                 borderColor: '#C8E6C9'
                               }}>
@@ -1209,7 +1213,7 @@ export default function HomeScreen({ navigation }: any) {
                                 {prop.supplierCompany?.name || 'Fornecedor'}
                               </Text>
                               
-                              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 8 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 10 }}>
                                 <View style={{ backgroundColor: '#FFF8E1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, flexDirection: 'row', alignItems: 'center' }}>
                                   <Text style={{ color: '#FF9800', fontSize: 11, fontWeight: 'bold' }}>
                                     {starsAvg ? `★ ${starsAvg}` : '★ Novo'}
@@ -1224,10 +1228,10 @@ export default function HomeScreen({ navigation }: any) {
                             {/* Total Geral em Destaque no Card Resumido */}
                             <View style={{ alignItems: 'flex-end' }}>
                               <Text style={{ fontSize: 10, color: colors.textSecondary, textTransform: 'uppercase', fontWeight: 'bold' }}>Total</Text>
-                              <Text style={{ fontSize: 16, fontWeight: '900', color: '#FF5722' }}>
+                              <Text style={{ fontSize: 17, fontWeight: '900', color: '#FF5722', marginTop: 2 }}>
                                 R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </Text>
-                              <Text style={{ fontSize: 11, color: '#FF5722', fontWeight: 'bold', marginTop: 2 }}>
+                              <Text style={{ fontSize: 11, color: '#FF5722', fontWeight: 'bold', marginTop: 6 }}>
                                 {isExpanded ? '▲ Ocultar' : '▼ Detalhes'}
                               </Text>
                             </View>
@@ -1489,7 +1493,7 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
-function MobileCountdownTimer({ expiresAt }: { expiresAt: string }) {
+function MobileCountdownTimer({ expiresAt, compact = false }: { expiresAt: string; compact?: boolean }) {
   const [timeLeft, setTimeLeft] = useState('');
   const [isExpired, setIsExpired] = useState(false);
 
@@ -1514,18 +1518,18 @@ function MobileCountdownTimer({ expiresAt }: { expiresAt: string }) {
   return (
     <View style={{
       backgroundColor: isExpired ? '#FFEEEA' : '#1A1200',
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 20,
+      paddingHorizontal: compact ? 12 : 20,
+      paddingVertical: compact ? 6 : 10,
+      borderRadius: compact ? 14 : 20,
       borderWidth: 2,
       borderColor: isExpired ? '#FF3D00' : '#FF9800',
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
       alignSelf: 'center',
-      marginTop: 4,
+      marginTop: compact ? 0 : 4,
     }}>
-      <Text style={{ fontSize: 22, fontWeight: 'bold', color: isExpired ? '#FF3D00' : '#FF9800', letterSpacing: 2, fontVariant: ['tabular-nums'] }}>
+      <Text style={{ fontSize: compact ? 16 : 22, fontWeight: 'bold', color: isExpired ? '#FF3D00' : '#FF9800', letterSpacing: 2, fontVariant: ['tabular-nums'] }}>
         ⏱ {timeLeft}
       </Text>
     </View>
@@ -1601,13 +1605,14 @@ const styles = StyleSheet.create({
   cancelButton: { padding: 16, alignItems: 'center', marginTop: 8 },
   cancelButtonText: { color: '#888', fontSize: 15, fontWeight: '600' },
   
-  searchingContainer: { padding: 24, alignItems: 'center', height: '100%' },
+  searchingContainer: { flex: 1, paddingTop: 4, alignItems: 'center' },
   radarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#FF5722', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  proposalsHeader: { width: '100%', marginBottom: 20 },
-  proposalsScroll: { width: '100%', marginBottom: 20 },
+  proposalsHeader: { width: '100%', marginBottom: 16, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(128,128,128,0.15)' },
+  proposalsTitle: { fontSize: 20, fontWeight: 'bold' },
+  proposalsScroll: { width: '100%', flex: 1 },
   proposalCard: { width: '100%', borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
   
-  searchingActions: { width: '100%', marginTop: 'auto', paddingBottom: 20 },
+  searchingActions: { width: '100%', marginTop: 12, paddingTop: 12, paddingBottom: 8, borderTopWidth: 1, borderTopColor: 'rgba(128,128,128,0.15)' },
   stopButton: { backgroundColor: '#FF5722', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginBottom: 12 },
   stopButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   cancelLink: { paddingVertical: 10, alignItems: 'center' },
