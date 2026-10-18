@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ActivityIndicator, Animated, ScrollView, TextInput, Platform, Alert, FlatList, Vibration, Switch } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, ActivityIndicator, Animated, ScrollView, TextInput, Platform, Alert, FlatList, Vibration, Switch, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { Flame, ChevronRight, Package, Search, CreditCard, Clock, Calendar, MapPin as MapPinIcon, XCircle, Trophy, MessageSquare, Send, Zap } from 'lucide-react-native';
+import { ChevronRight, Package, Search, CreditCard, Clock, Calendar, MapPin as MapPinIcon, XCircle, Trophy, MessageSquare, Send, Zap } from 'lucide-react-native';
 import { WebView } from 'react-native-webview';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -466,15 +466,18 @@ export default function HomeScreen({ navigation }: any) {
   const handleMarkDelivered = async () => {
     if (!activeOrder?.id) return;
     if (activeOrder.status === 'PENDING_CONFIRMATION') {
-      return alert('O fornecedor ainda está preparando o pedido para despacho.');
+      return alert('O fornecedor ainda não aceitou o pedido.');
+    }
+    if (activeOrder.status === 'CONFIRMED') {
+      return alert('O fornecedor ainda não saiu para entrega. Você poderá confirmar o recebimento quando o pedido estiver em entrega.');
     }
     try {
       await api.patch(`/orders/${activeOrder.id}/status`, { status: 'DELIVERED', notes: 'Entregue pelo app mobile' });
       setRatingOrder(activeOrder);
       setActiveOrder(null);
       setRequestState('idle');
-    } catch (e) {
-      alert('Erro ao marcar pedido como entregue.');
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Erro ao marcar pedido como entregue.');
     }
   };
 
@@ -783,7 +786,7 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{companyName}</Text>
           </View>
           <View style={styles.avatar}>
-            <Flame color="white" size={20} />
+            <Image source={require('../../assets/icon.png')} style={{ width: 40, height: 40, borderRadius: 20 }} />
           </View>
         </View>
 
@@ -845,20 +848,20 @@ export default function HomeScreen({ navigation }: any) {
               </TouchableOpacity>
 
               <TouchableOpacity 
-                disabled={activeOrder.status === 'PENDING_CONFIRMATION'}
+                disabled={activeOrder.status !== 'IN_DELIVERY'}
                 style={[
                   styles.confirmReceiptButton, 
                   { 
                     flex: 1,
                     marginHorizontal: 0,
-                    backgroundColor: activeOrder.status === 'IN_DELIVERY' ? '#4CAF50' : activeOrder.status === 'CONFIRMED' ? '#FF9800' : '#B0BEC5',
-                    opacity: activeOrder.status === 'PENDING_CONFIRMATION' ? 0.5 : 1
+                    backgroundColor: activeOrder.status === 'IN_DELIVERY' ? '#4CAF50' : '#B0BEC5',
+                    opacity: activeOrder.status !== 'IN_DELIVERY' ? 0.5 : 1
                   }
                 ]} 
                 onPress={handleMarkDelivered}
               >
                 <Text style={styles.confirmReceiptText}>
-                  {activeOrder.status === 'PENDING_CONFIRMATION' ? 'Aguardando Despacho...' : 'Confirmar Recebimento'}
+                  {activeOrder.status === 'PENDING_CONFIRMATION' ? 'Aguardando Aceite...' : activeOrder.status === 'CONFIRMED' ? 'Aguardando Despacho...' : 'Confirmar Recebimento'}
                 </Text>
               </TouchableOpacity>
             </View>

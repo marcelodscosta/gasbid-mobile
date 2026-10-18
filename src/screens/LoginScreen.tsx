@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Flame, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
+import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 
 import { api } from '../api';
 import { tokenStore } from '../utils/tokenStore';
@@ -62,7 +62,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconWrapper}>
-            <Flame color="#FF5722" size={32} strokeWidth={2} />
+            <Image source={require('../../assets/icon.png')} style={{ width: 64, height: 64, borderRadius: 16 }} />
           </View>
           <Text style={styles.title}>Acesse sua conta</Text>
           <Text style={styles.subtitle}>Comprador ou Fornecedor</Text>
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#FFF3E0', // Light orange background for icon
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,

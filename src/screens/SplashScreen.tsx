@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions, Easing } from 'react-native';
-import { Truck, Flame } from 'lucide-react-native';
+import { View, Text, StyleSheet, Animated, Dimensions, Easing, Image } from 'react-native';
+import { Truck } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -68,7 +68,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         <Animated.View style={[styles.truckContainer, { transform: [{ translateX: truckPosition }] }]}>
           <Truck color="#FF5722" size={56} strokeWidth={1.5} />
           <View style={styles.flameIcon}>
-            <Flame color="#FFF" size={20} fill="#FF5722" />
+            <Image source={require('../../assets/logo-mark.png')} style={{ width: 22, height: 22 }} resizeMode="contain" />
           </View>
         </Animated.View>
 
