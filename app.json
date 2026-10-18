@@ -22,7 +22,9 @@
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "WAKE_LOCK"
+        "WAKE_LOCK",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
       ],
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
@@ -44,7 +46,14 @@
           "color": "#F97316",
           "defaultChannel": "default"
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O GasBid usa sua localização para mostrar ao comprador onde está a entrega."
+        }
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

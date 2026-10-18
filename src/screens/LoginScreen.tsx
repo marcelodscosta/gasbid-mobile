@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Flame, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 
 import { api } from '../api';
+import { tokenStore } from '../utils/tokenStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface LoginScreenProps {
@@ -23,8 +24,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       const response = await api.post('/auth/login', { email, password });
       const { token, refreshToken, user } = response.data;
       
-      await AsyncStorage.setItem('@gasbid:token', token);
-      await AsyncStorage.setItem('@gasbid:refresh', refreshToken);
+      await tokenStore.setTokens(token, refreshToken);
       await AsyncStorage.setItem('@gasbid:role', user.role);
       
       onLoginSuccess(user.role);

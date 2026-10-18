@@ -4,14 +4,15 @@ import {
   ActivityIndicator, RefreshControl, Vibration
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
+import { usePolling } from '../../hooks/usePolling';
 import { Zap, MapPin, Clock, Users, ChevronRight, CheckCircle, Package, Truck, MessageSquare } from 'lucide-react-native';
 import { api } from '../../api';
 import { useTheme } from '../../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  CREATED:     { label: 'Aguardando Confirmação', color: '#D97706', bg: '#FEF3C7' },
+  PENDING_CONFIRMATION: { label: 'Aguardando Confirmação', color: '#D97706', bg: '#FEF3C7' },
   CONFIRMED:   { label: 'Confirmado · Preparando', color: '#2563EB', bg: '#DBEAFE' },
 };
 
@@ -148,7 +149,7 @@ export default function OpportunitiesScreen() {
       setOpportunities(oppRes.data?.data || []);
       
       // Filter for orders that need supplier action or delivery
-      const activeOrders = (ordRes.data?.data || []).filter((o: any) => ['CREATED', 'CONFIRMED'].includes(o.status));
+      const activeOrders = (ordRes.data?.data || []).filter((o: any) => ['PENDING_CONFIRMATION', 'CONFIRMED'].includes(o.status));
       setPendingOrders(activeOrders);
     } catch (e: any) {
       if (e.response?.status !== 401) console.warn('Fetch error:', e.message);
@@ -162,10 +163,10 @@ export default function OpportunitiesScreen() {
     useCallback(() => {
       setIsLoading(true);
       fetchData();
-      const interval = setInterval(() => fetchData(), 15000);
-      return () => clearInterval(interval);
     }, [])
   );
+  // NEW_OPPORTUNITY / PROPOSAL_OUTBID etc. chegam por WebSocket; polling lento só como segurança
+  usePolling(fetchData, 15000, useIsFocused());
 
   const renderItem = ({ item }: any) => {
     const productsSummary = item.items?.map((i: any) => `${i.quantity}x ${i.product?.name || 'Produto'}`).join(' + ') || 'Produtos';

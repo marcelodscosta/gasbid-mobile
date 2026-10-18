@@ -1,8 +1,8 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenStore } from '../utils/tokenStore';
 
 // Configuração do servidor backend (Produção no Render)
-const BASE_URL = 'https://gasbid-backend-zh4b.onrender.com';
+export const BASE_URL = 'https://gasbid-backend-zh4b.onrender.com';
 type UnauthCallback = () => void;
 const listeners = new Set<UnauthCallback>();
 
@@ -29,7 +29,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem('@gasbid:token');
+  const token = await tokenStore.getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -43,18 +43,16 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
       try {
-        const refreshToken = await AsyncStorage.getItem('@gasbid:refresh');
+        const refreshToken = await tokenStore.getRefresh();
         if (!refreshToken) throw new Error('No refresh token available');
 
         const { data } = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
-        await AsyncStorage.setItem('@gasbid:token', data.token);
-        await AsyncStorage.setItem('@gasbid:refresh', data.refreshToken);
+        await tokenStore.setTokens(data.token, data.refreshToken);
         
         original.headers.Authorization = `Bearer ${data.token}`;
         return api(original);
       } catch (err) {
-        await AsyncStorage.removeItem('@gasbid:token');
-        await AsyncStorage.removeItem('@gasbid:refresh');
+        await tokenStore.clear();
         authEvents.emitUnauthenticated();
       }
     }

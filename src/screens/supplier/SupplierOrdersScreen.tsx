@@ -4,13 +4,14 @@ import {
   ActivityIndicator, RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useIsFocused, useNavigation } from '@react-navigation/native';
+import { usePolling } from '../../hooks/usePolling';
 import { Package, Clock, CheckCircle, Truck, MessageSquare } from 'lucide-react-native';
 import { api } from '../../api';
 import { useTheme } from '../../context/ThemeContext';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  CREATED:     { label: 'Aguardando Confirmação', color: '#D97706', bg: '#FEF3C7' },
+  PENDING_CONFIRMATION: { label: 'Aguardando Confirmação', color: '#D97706', bg: '#FEF3C7' },
   CONFIRMED:   { label: 'Confirmado · Preparando', color: '#2563EB', bg: '#DBEAFE' },
   IN_DELIVERY: { label: '🚚 Em Entrega', color: '#059669', bg: '#D1FAE5' },
   DELIVERED:   { label: '✓ Entregue', color: '#16A34A', bg: '#F0FDF4' },
@@ -41,10 +42,9 @@ export default function SupplierOrdersScreen() {
     useCallback(() => {
       setIsLoading(true);
       fetchOrders();
-      const interval = setInterval(() => fetchOrders(), 8000);
-      return () => clearInterval(interval);
     }, [])
   );
+  usePolling(fetchOrders, 8000, useIsFocused());
 
   const renderItem = ({ item }: any) => {
     const cfg = statusConfig[item.status] || { label: item.status, color: '#666', bg: '#F3F4F6' };
@@ -52,7 +52,7 @@ export default function SupplierOrdersScreen() {
       ?.map((i: any) => `${i.quantity}x ${i.product?.name}`)
       .join(' + ') || 'Produtos';
 
-    const isActive = ['CREATED', 'CONFIRMED', 'IN_DELIVERY'].includes(item.status);
+    const isActive = ['PENDING_CONFIRMATION', 'CONFIRMED', 'IN_DELIVERY'].includes(item.status);
 
     return (
       <TouchableOpacity

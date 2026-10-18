@@ -9,10 +9,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../api';
 import { useTheme } from '../context/ThemeContext';
 import { mobileAudioService } from '../utils/sound';
+import { usePolling } from '../hooks/usePolling';
 
 const { width, height } = Dimensions.get('window');
 
 const PAYMENT_METHODS = ['Pix', 'Dinheiro', 'Crédito', 'Débito'];
+// A API grava a forma de pagamento como enum; a tela exibe o rótulo em português
+const PAYMENT_CODES: Record<string, string> = { Pix: 'PIX', Dinheiro: 'CASH', 'Crédito': 'CREDIT', 'Débito': 'DEBIT' };
+const PAYMENT_LABELS: Record<string, string> = { PIX: 'Pix', CASH: 'Dinheiro', CREDIT: 'Crédito', DEBIT: 'Débito', BOLETO: 'Boleto' };
+// PENDING_CONFIRMATION também é pedido em andamento (aceito, aguardando o fornecedor)
+const ACTIVE_ORDER_STATUSES = ['PENDING_CONFIRMATION', 'CONFIRMED', 'IN_DELIVERY'];
 
 export default function HomeScreen({ navigation }: any) {
   const [requestState, setRequestState] = useState<'idle' | 'requesting' | 'searching'>('idle');
@@ -131,7 +137,7 @@ export default function HomeScreen({ navigation }: any) {
             }
           }
 
-          const ongoingOrder = ordersRes.data?.data?.find((o: any) => ['CREATED', 'CONFIRMED', 'IN_DELIVERY'].includes(o.status));
+          const ongoingOrder = ordersRes.data?.data?.find((o: any) => ACTIVE_ORDER_STATUSES.includes(o.status));
           if (ongoingOrder) {
             setActiveOrder(ongoingOrder);
           }
@@ -151,7 +157,7 @@ export default function HomeScreen({ navigation }: any) {
               }).join(' + ');
               const reqTotalQty = lastReq.items.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0);
               const pmMatch = lastReq.observations?.match(/Pagamento:\s*([^\n\r]+)/i);
-              const pm = pmMatch ? pmMatch[1].trim() : 'Pix';
+              const pm = PAYMENT_LABELS[lastReq.paymentMethod] || (pmMatch ? pmMatch[1].trim() : 'Pix');
 
               const latestOrderSummary = {
                 items: reqItemsPayload,
@@ -177,52 +183,58 @@ export default function HomeScreen({ navigation }: any) {
   const prevProposalsCountRef = useRef(0);
   const isAutoAcceptingRef = useRef(false);
 
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (requestState === 'searching' && activeRequest?.id) {
-      interval = setInterval(async () => {
-        try {
-          const res = await api.get(`/buyer-requests/${activeRequest.id}`);
-          const newProposalsCount = res.data?.proposals?.length || 0;
-          if (newProposalsCount > prevProposalsCountRef.current) {
-            mobileAudioService.notifyNewProposal();
-            try { Vibration.vibrate(120); } catch (e) {}
-          }
-          prevProposalsCountRef.current = newProposalsCount;
-          setActiveRequest(res.data);
+  // Atualiza a cotação em andamento: eventos via WebSocket (PROPOSAL_*), com polling lento de segurança
+  usePolling(async () => {
+    if (!activeRequest?.id) return;
+    try {
+      const res = await api.get(`/buyer-requests/${activeRequest.id}`);
+      const newProposalsCount = res.data?.proposals?.length || 0;
+      if (newProposalsCount > prevProposalsCountRef.current) {
+        mobileAudioService.notifyNewProposal();
+        try { Vibration.vibrate(120); } catch (e) {}
+      }
+      prevProposalsCountRef.current = newProposalsCount;
+      setActiveRequest(res.data);
 
-          // Auto-aceite cego desabilitado. A decisão de escolher o vencedor agora é estritamente manual ou tratada de forma segura no backend (SLA).
-          /* 
-          const isExpired = res.data?.expiresAt && new Date(res.data.expiresAt).getTime() <= Date.now();
-          if (isExpired && autoAcceptBestPrice && res.data?.proposals?.length > 0 && !isAutoAcceptingRef.current) {
-            // ... (código antigo)
-          }
-          */
-        } catch (e) {}
-      }, 4000);
-    }
-    return () => clearInterval(interval);
-  }, [requestState, activeRequest?.id, autoAcceptBestPrice]);
+      // Auto-aceite cego desabilitado. A decisão de escolher o vencedor agora é estritamente manual ou tratada de forma segura no backend (SLA).
+      /* 
+      const isExpired = res.data?.expiresAt && new Date(res.data.expiresAt).getTime() <= Date.now();
+      if (isExpired && autoAcceptBestPrice && res.data?.proposals?.length > 0 && !isAutoAcceptingRef.current) {
+        // ... (código antigo)
+      }
+      */
+    } catch (e) {}
+  }, 4000, requestState === 'searching' && !!activeRequest?.id);
 
-  // Polling for activeOrder status updates (CREATED -> CONFIRMED -> IN_DELIVERY)
-  useEffect(() => {
-    let orderInterval: ReturnType<typeof setInterval>;
-    if (activeOrder?.id) {
-      orderInterval = setInterval(async () => {
-        try {
-          const res = await api.get(`/orders/${activeOrder.id}`);
-          if (res.data) {
-            if (res.data.status === 'DELIVERED' || res.data.status === 'CANCELLED') {
-              setActiveOrder(null);
-            } else {
-              setActiveOrder(res.data);
-            }
-          }
-        } catch (e) {}
-      }, 5000);
-    }
-    return () => clearInterval(orderInterval);
-  }, [activeOrder?.id]);
+  // Se o fornecedor não confirmou e o cron cancelou o pedido, a cotação volta para análise:
+  // recarrega para o comprador escolher outra proposta.
+  const restoreActiveRequest = async () => {
+    try {
+      const list = await api.get('/buyer-requests?limit=10');
+      const reopened = list.data?.data?.find((r: any) => r.status === 'OPEN' || r.status === 'UNDER_REVIEW');
+      if (reopened) {
+        const full = await api.get(`/buyer-requests/${reopened.id}`);
+        setActiveRequest(full.data);
+        setRequestState('searching');
+      }
+    } catch (e) {}
+  };
+
+  // Atualiza o status do pedido ativo (PENDING_CONFIRMATION -> CONFIRMED -> IN_DELIVERY)
+  usePolling(async () => {
+    if (!activeOrder?.id) return;
+    try {
+      const res = await api.get(`/orders/${activeOrder.id}`);
+      if (res.data) {
+        if (res.data.status === 'DELIVERED' || res.data.status === 'CANCELLED') {
+          setActiveOrder(null);
+          if (res.data.status === 'CANCELLED') await restoreActiveRequest();
+        } else {
+          setActiveOrder(res.data);
+        }
+      }
+    } catch (e) {}
+  }, 5000, !!activeOrder?.id);
 
   const fetchMessages = async (orderId: string) => {
     try {
@@ -238,13 +250,11 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (chatOrder?.id) {
-      fetchMessages(chatOrder.id);
-      interval = setInterval(() => fetchMessages(chatOrder.id), 3000);
-    }
-    return () => clearInterval(interval);
+    if (chatOrder?.id) fetchMessages(chatOrder.id);
   }, [chatOrder?.id]);
+
+  // Novas mensagens chegam por NEW_ORDER_MESSAGE; o polling é só segurança
+  usePolling(() => chatOrder?.id && fetchMessages(chatOrder.id), 3000, !!chatOrder?.id);
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !chatOrder?.id) return;
@@ -310,6 +320,7 @@ export default function HomeScreen({ navigation }: any) {
         addressId,
         items: lastOrder.items,
         deadline: now.toISOString(),
+        paymentMethod: PAYMENT_CODES[lastOrder.paymentMethod || paymentMethod],
         observations: `Pedido Express (1-Clique) · Pagamento: ${lastOrder.paymentMethod || paymentMethod}`,
       });
 
@@ -364,6 +375,7 @@ export default function HomeScreen({ navigation }: any) {
         addressId,
         items,
         deadline: finalDeadlineDate,
+        paymentMethod: PAYMENT_CODES[paymentMethod],
         observations: `Pagamento: ${paymentMethod}`,
       });
 
@@ -407,11 +419,11 @@ export default function HomeScreen({ navigation }: any) {
       } else {
         // Fallback fetch ongoing order
         const ordersRes = await api.get('/orders?limit=5');
-        const ongoing = ordersRes.data?.data?.find((o: any) => ['CREATED', 'CONFIRMED', 'IN_DELIVERY'].includes(o.status));
+        const ongoing = ordersRes.data?.data?.find((o: any) => ACTIVE_ORDER_STATUSES.includes(o.status));
         if (ongoing) setActiveOrder(ongoing);
       }
-    } catch (e) {
-      alert('Erro ao aceitar proposta.');
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Erro ao aceitar proposta.');
     }
   };
 
@@ -453,7 +465,7 @@ export default function HomeScreen({ navigation }: any) {
 
   const handleMarkDelivered = async () => {
     if (!activeOrder?.id) return;
-    if (activeOrder.status === 'CREATED') {
+    if (activeOrder.status === 'PENDING_CONFIRMATION') {
       return alert('O fornecedor ainda está preparando o pedido para despacho.');
     }
     try {
@@ -642,7 +654,7 @@ export default function HomeScreen({ navigation }: any) {
               return;
             }
             if (map) return;
-            map = L.map('map', { zoomControl: false }).setView([-9.389000, -40.502000], 13);
+            map = L.map('map', { zoomControl: false }).setView([-14.235, -51.925], 4);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
             if (window.pendingMarkers) {
@@ -760,7 +772,6 @@ export default function HomeScreen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           onLoadEnd={() => setIsMapLoaded(true)}
-          onMessage={(event) => console.log('WebView Message:', event.nativeEvent.data)}
         />
       </View>
 
@@ -784,7 +795,7 @@ export default function HomeScreen({ navigation }: any) {
                 <View style={styles.orderInfo}>
                   <View style={[styles.orderStatusDot, { backgroundColor: activeOrder.status === 'IN_DELIVERY' ? '#2196F3' : '#FF9800' }]} />
                   <Text style={styles.orderStatusText}>
-                    {activeOrder.status === 'CREATED' && 'Pedido Aceito · Aguardando Despacho'}
+                    {activeOrder.status === 'PENDING_CONFIRMATION' && 'Pedido Aceito · Aguardando Despacho'}
                     {activeOrder.status === 'CONFIRMED' && 'Confirmado pelo Fornecedor'}
                     {activeOrder.status === 'IN_DELIVERY' && '🚚 Saiu para Entrega!'}
                   </Text>
@@ -834,20 +845,20 @@ export default function HomeScreen({ navigation }: any) {
               </TouchableOpacity>
 
               <TouchableOpacity 
-                disabled={activeOrder.status === 'CREATED'}
+                disabled={activeOrder.status === 'PENDING_CONFIRMATION'}
                 style={[
                   styles.confirmReceiptButton, 
                   { 
                     flex: 1,
                     marginHorizontal: 0,
                     backgroundColor: activeOrder.status === 'IN_DELIVERY' ? '#4CAF50' : activeOrder.status === 'CONFIRMED' ? '#FF9800' : '#B0BEC5',
-                    opacity: activeOrder.status === 'CREATED' ? 0.5 : 1
+                    opacity: activeOrder.status === 'PENDING_CONFIRMATION' ? 0.5 : 1
                   }
                 ]} 
                 onPress={handleMarkDelivered}
               >
                 <Text style={styles.confirmReceiptText}>
-                  {activeOrder.status === 'CREATED' ? 'Aguardando Despacho...' : 'Confirmar Recebimento'}
+                  {activeOrder.status === 'PENDING_CONFIRMATION' ? 'Aguardando Despacho...' : 'Confirmar Recebimento'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1135,13 +1146,8 @@ export default function HomeScreen({ navigation }: any) {
                       const isBestPrice = grandTotal === minTotal;
 
                       const matchedSupplier = nearbySuppliers.find((s: any) => s.id === prop.supplierCompanyId);
-                      const ratings = prop.supplierCompany?.ratingsReceived?.length > 0 
-                        ? prop.supplierCompany.ratingsReceived 
-                        : matchedSupplier?.ratingsReceived || [];
-                      
-                      const starsAvg = ratings.length > 0
-                        ? (ratings.reduce((acc: number, r: any) => acc + r.stars, 0) / ratings.length).toFixed(1)
-                        : null;
+                      const avgRaw = prop.supplierCompany?.ratingAvg ?? matchedSupplier?.ratingAvg ?? null;
+                      const starsAvg = avgRaw != null ? Number(avgRaw).toFixed(1) : null;
 
                       const isExpanded = expandedProposalId === prop.id;
 

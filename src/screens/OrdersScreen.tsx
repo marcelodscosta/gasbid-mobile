@@ -5,6 +5,8 @@ import { Package, Clock, CheckCircle, RotateCcw, MessageSquare, Send } from 'luc
 import { api } from '../api';
 import { useTheme } from '../context/ThemeContext';
 import { mobileAudioService } from '../utils/sound';
+import { usePolling } from '../hooks/usePolling';
+import LiveTrackingMap from '../components/LiveTrackingMap';
 
 const statusTranslations: Record<string, string> = {
   OPEN: 'Em Aberto',
@@ -14,7 +16,7 @@ const statusTranslations: Record<string, string> = {
   AWARDED: 'Aceito',
   IN_DELIVERY: 'Em Entrega',
   CONFIRMED: 'Confirmado',
-  CREATED: 'Iniciado',
+  PENDING_CONFIRMATION: 'Aguardando Fornecedor',
 };
 
 export default function OrdersScreen({ navigation }: any) {
@@ -32,8 +34,6 @@ export default function OrdersScreen({ navigation }: any) {
 
   useEffect(() => {
     fetchOrders();
-    const interval = setInterval(fetchOrders, 6000);
-    return () => clearInterval(interval);
   }, []);
 
   const fetchOrders = async () => {
@@ -58,6 +58,8 @@ export default function OrdersScreen({ navigation }: any) {
     }
   };
 
+  usePolling(fetchOrders, 6000);
+
   const fetchMessages = async (orderId: string) => {
     try {
       const response = await api.get(`/orders/${orderId}/messages`);
@@ -72,13 +74,11 @@ export default function OrdersScreen({ navigation }: any) {
   };
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (chatOrder) {
-      fetchMessages(chatOrder.id);
-      interval = setInterval(() => fetchMessages(chatOrder.id), 3000);
-    }
-    return () => clearInterval(interval);
+    if (chatOrder) fetchMessages(chatOrder.id);
   }, [chatOrder]);
+
+  // Novas mensagens chegam por NEW_ORDER_MESSAGE; o polling é só segurança
+  usePolling(() => chatOrder && fetchMessages(chatOrder.id), 3000, !!chatOrder);
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !chatOrder) return;
@@ -165,7 +165,7 @@ export default function OrdersScreen({ navigation }: any) {
     const isDelivered = item.status === 'DELIVERED' || item.order?.status === 'DELIVERED';
     const isCancelled = item.status === 'CANCELLED' || item.order?.status === 'CANCELLED';
     const isActive = !isDelivered && !isCancelled;
-    const canCancel = item.status === 'OPEN' || item.status === 'CREATED' || item.status === 'CONFIRMED' || item.status === 'UNDER_REVIEW';
+    const canCancel = item.status === 'OPEN' || item.status === 'CONFIRMED' || item.status === 'UNDER_REVIEW';
 
     const orderRating = item.order?.rating || item.rating;
     const hasBeenRated = !!orderRating;
@@ -236,6 +236,15 @@ export default function OrdersScreen({ navigation }: any) {
               </View>
             </View>
           </View>
+        )}
+
+        {item.order?.id && item.order.status === 'IN_DELIVERY' && (
+          <LiveTrackingMap
+            orderId={item.order.id}
+            destination={item.address}
+            textColor={colors.text}
+            mutedColor={colors.textSecondary}
+          />
         )}
 
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>

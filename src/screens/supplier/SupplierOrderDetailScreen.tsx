@@ -10,10 +10,11 @@ import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../../api';
 import { useTheme } from '../../context/ThemeContext';
+import { useLocationSharing } from '../../hooks/useLocationSharing';
+import { usePolling } from '../../hooks/usePolling';
 
 const timelineLabels: Record<string, string> = {
   PENDING_CONFIRMATION: 'Aguardando Seu Aceite',
-  CREATED: 'Pedido Gerado',
   CONFIRMED: 'Confirmado',
   IN_DELIVERY: 'Em Entrega',
   DELIVERED: 'Entregue',
@@ -35,6 +36,7 @@ export default function SupplierOrderDetailScreen() {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const prevTotalRef = React.useRef(order._count?.messages || 0);
+  const { sharing, error: sharingError, toggle: toggleSharing } = useLocationSharing(order.status === 'IN_DELIVERY');
 
   useEffect(() => {
     const checkUnread = async () => {
@@ -85,16 +87,14 @@ export default function SupplierOrderDetailScreen() {
 
   useEffect(() => {
     fetchOrder();
-    const orderInterval = setInterval(fetchOrder, 6000);
-    return () => clearInterval(orderInterval);
   }, [order.id]);
+  usePolling(fetchOrder, 6000);
 
   useEffect(() => {
-    if (!showChat) return;
-    fetchMessages();
-    const chatInterval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(chatInterval);
+    if (showChat) fetchMessages();
   }, [showChat, order.id]);
+  // Novas mensagens chegam por NEW_ORDER_MESSAGE; o polling é só segurança
+  usePolling(fetchMessages, 3000, showChat);
 
   const scrollViewRef = React.useRef<ScrollView>(null);
   useEffect(() => {
@@ -249,12 +249,29 @@ export default function SupplierOrderDetailScreen() {
             </TouchableOpacity>
           )}
           {order.status === 'IN_DELIVERY' && (
-            <View style={{ backgroundColor: '#D1FAE5', padding: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Truck size={18} color="#059669" />
-              <Text style={{ color: '#065F46', fontWeight: 'bold', fontSize: 14 }}>
-                Pedido em rota de entrega. Aguardando confirmação do comprador.
-              </Text>
-            </View>
+            <>
+              <View style={{ backgroundColor: '#D1FAE5', padding: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Truck size={18} color="#059669" />
+                <Text style={{ color: '#065F46', fontWeight: 'bold', fontSize: 14, flex: 1 }}>
+                  Pedido em rota de entrega. Aguardando confirmação do comprador.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.actionBtn, { marginTop: 12, backgroundColor: sharing ? '#DC2626' : '#4F46E5' }]}
+                onPress={toggleSharing}
+              >
+                <MapPin size={18} color="white" />
+                <Text style={styles.actionBtnText}>
+                  {sharing ? 'Parar de compartilhar localização' : 'Compartilhar localização com o comprador'}
+                </Text>
+              </TouchableOpacity>
+              {sharing && (
+                <Text style={{ marginTop: 8, fontSize: 12, color: colors.textSecondary }}>
+                  Mantenha esta tela aberta. O comprador vê sua posição ao vivo.
+                </Text>
+              )}
+              {!!sharingError && <Text style={{ marginTop: 8, fontSize: 12, color: '#DC2626' }}>{sharingError}</Text>}
+            </>
           )}
           {order.status === 'DELIVERED' && (
             <View style={{ backgroundColor: '#F0FDF4', padding: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>

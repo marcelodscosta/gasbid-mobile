@@ -25,6 +25,8 @@ import SplashScreen from './src/screens/SplashScreen';
 import LoginScreen from './src/screens/LoginScreen';
 
 import { authEvents } from './src/api';
+import { tokenStore } from './src/utils/tokenStore';
+import { RealtimeProvider } from './src/context/RealtimeContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { UserProvider, UserRole } from './src/context/UserContext';
 
@@ -133,7 +135,7 @@ export default function App() {
     const checkLoginStatus = async () => {
       try {
         const [token, storedRole] = await Promise.all([
-          AsyncStorage.getItem('@gasbid:token'),
+          tokenStore.getToken(),
           AsyncStorage.getItem('@gasbid:role'),
         ]);
         if (token) {
@@ -173,7 +175,9 @@ export default function App() {
   return (
     <UserProvider onLogout={handleLogout}>
       <ThemeProvider>
-        <AppNavigator userRole={userRole} onLoginSuccess={handleLoginSuccess} />
+        <RealtimeProvider>
+          <AppNavigator userRole={userRole} onLoginSuccess={handleLoginSuccess} />
+        </RealtimeProvider>
       </ThemeProvider>
     </UserProvider>
   );
