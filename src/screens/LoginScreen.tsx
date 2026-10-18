@@ -28,8 +28,23 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       await AsyncStorage.setItem('@gasbid:role', user.role);
       
       onLoginSuccess(user.role);
-    } catch (error) {
-      alert('Erro no login. Verifique as credenciais ou a conexão com o servidor (IP).');
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const serverMsg = error?.response?.data?.message;
+      if (status === 401 || status === 400) {
+        alert(serverMsg || 'E-mail ou senha incorretos.');
+      } else if (status === 429) {
+        alert('Muitas tentativas. Aguarde um minuto e tente novamente.');
+      } else if (status >= 500) {
+        alert('Servidor indisponível no momento. Tente novamente em instantes.');
+      } else if (error?.response) {
+        alert(serverMsg || 'Não foi possível entrar.');
+      } else if (error?.request) {
+        alert('Sem conexão com o servidor. Verifique sua internet.');
+      } else {
+        // Falha local (ex.: armazenamento seguro indisponível em build antigo do app)
+        alert('Erro ao salvar a sessão no aparelho. Atualize o aplicativo.');
+      }
       console.error(error);
     } finally {
       setIsLoading(false);
